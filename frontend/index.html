@@ -1,0 +1,846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deal Intelligence Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#12151A; --panel:#1A1E25; --panel-raised:#20252D; --border:#2A2F38;
+    --text:#E9E6DD; --text-muted:#8D93A0; --text-faint:#5B6270;
+    --gold:#C99A44; --blue:#5B8DEF; --red:#C1594B; --green:#4E9A6B;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:'IBM Plex Sans',sans-serif;font-size:15px;line-height:1.55;}
+  h1,h2,h3{font-family:'Fraunces',serif;font-weight:500;margin:0;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  a{color:inherit;}
+  button{font-family:inherit;cursor:pointer;}
+
+  .app{display:grid;grid-template-columns:280px 1fr;min-height:100vh;}
+
+  /* Sidebar */
+  .sidebar{background:var(--panel);border-right:1px solid var(--border);
+    padding:24px 18px;display:flex;flex-direction:column;gap:22px;}
+  .brand{padding-bottom:4px;}
+  .brand h1{font-size:19px;color:var(--text);}
+  .brand p{margin:4px 0 0;color:var(--text-muted);font-size:12.5px;}
+  .brand .dot{color:var(--gold);}
+
+  .section-label{color:var(--text-faint);font-size:12px;letter-spacing:.02em;
+    margin-bottom:8px;}
+  .deal-list{display:flex;flex-direction:column;gap:6px;}
+  .deal-item{border:1px solid transparent;border-left:3px solid transparent;
+    padding:10px 10px;border-radius:2px;cursor:pointer;}
+  .deal-item:hover{background:var(--panel-raised);}
+  .deal-item.active{background:var(--panel-raised);border-left-color:var(--gold);}
+  .deal-item .co{font-weight:500;font-size:14px;}
+  .deal-item .meta{color:var(--text-muted);font-size:12px;margin-top:2px;}
+
+  .btn{background:transparent;border:1px solid var(--border);color:var(--text);
+    padding:9px 14px;border-radius:2px;font-size:13.5px;}
+  .btn:hover{border-color:var(--text-muted);}
+  .btn.primary{background:var(--gold);border-color:var(--gold);color:#1A1408;font-weight:500;}
+  .btn.primary:hover{background:#DBA954;}
+  .btn.small{padding:6px 10px;font-size:12.5px;}
+  .btn.block{width:100%;}
+
+  .playbook-box{border-top:1px solid var(--border);padding-top:18px;}
+  select{width:100%;background:var(--panel-raised);border:1px solid var(--border);
+    color:var(--text);padding:8px;border-radius:2px;font-family:inherit;font-size:13.5px;margin-bottom:8px;}
+  .insight-out{background:var(--panel-raised);border-left:3px solid var(--blue);
+    padding:10px 12px;font-size:13px;color:var(--text-muted);margin-top:10px;
+    border-radius:2px;display:none;}
+
+  /* Main */
+  .main{padding:32px 40px;max-width:900px;}
+  .empty-state{color:var(--text-muted);padding-top:80px;text-align:center;}
+  .empty-state h2{color:var(--text);margin-bottom:10px;}
+
+  .deal-header{display:flex;justify-content:space-between;align-items:flex-start;
+    border-bottom:1px solid var(--border);padding-bottom:20px;margin-bottom:22px;}
+  .deal-header h2{font-size:26px;}
+  .deal-header .sub{color:var(--text-muted);font-size:13.5px;margin-top:6px;}
+  .stage-badge{border:1px solid var(--gold);color:var(--gold);padding:4px 12px;
+    border-radius:2px;font-size:12.5px;white-space:nowrap;}
+  .value{color:var(--text-muted);font-size:13px;margin-top:4px;}
+
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:22px;}
+  .tab{padding:10px 4px;margin-right:22px;color:var(--text-muted);border-bottom:2px solid transparent;
+    font-size:14px;cursor:pointer;}
+  .tab.active{color:var(--text);border-bottom-color:var(--gold);}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  /* Timeline */
+  .timeline-item{display:flex;gap:16px;padding:14px 0;border-bottom:1px solid var(--border);}
+  .timeline-item:last-child{border-bottom:none;}
+  .timeline-item .date{width:88px;flex-shrink:0;color:var(--text-faint);font-size:12px;padding-top:2px;}
+  .timeline-item .body{flex:1;}
+  .timeline-item .type-tag{display:inline-block;font-size:11.5px;color:var(--text-muted);
+    border:1px solid var(--border);padding:1px 7px;border-radius:2px;margin-bottom:6px;}
+  .timeline-item .notes{color:var(--text);font-size:14px;}
+  .tag-row{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;}
+  .tag{font-size:11.5px;padding:2px 8px;border-radius:2px;}
+  .tag.objection{background:rgba(193,89,75,.15);color:var(--red);}
+  .tag.outcome-advanced{background:rgba(78,154,107,.15);color:var(--green);}
+  .tag.outcome-stalled{background:rgba(201,154,68,.15);color:var(--gold);}
+  .tag.outcome-lost{background:rgba(193,89,75,.15);color:var(--red);}
+  .tag.who{background:rgba(91,141,239,.12);color:var(--blue);}
+
+  /* Learning pipeline (MEMORY -> EVIDENCE -> RECOMMENDATION -> OUTCOME -> LEARNING) */
+  .pipeline-step{border:1px solid var(--border);border-radius:2px;padding:16px 18px;
+    margin-bottom:14px;background:var(--panel);}
+  .pipeline-step .step-label{font-size:11px;color:var(--text-faint);letter-spacing:.04em;
+    margin-bottom:10px;}
+  .pipeline-step h4{font-size:15px;font-weight:500;color:var(--text);margin-bottom:4px;}
+  .field-input{width:100%;background:var(--panel-raised);border:1px solid var(--border);
+    color:var(--text);padding:9px;border-radius:2px;font-family:inherit;font-size:13.5px;}
+  textarea.field-input{resize:vertical;}
+  .badge{display:inline-block;padding:2px 9px;border-radius:2px;font-size:11px;margin-left:8px;
+    vertical-align:middle;}
+  .badge.strong{background:rgba(78,154,107,.15);color:var(--green);}
+  .badge.moderate{background:rgba(91,141,239,.15);color:var(--blue);}
+  .badge.weak{background:rgba(201,154,68,.15);color:var(--gold);}
+  .badge.mixed{background:rgba(193,89,75,.15);color:var(--red);}
+  .badge.none{background:rgba(141,147,160,.15);color:var(--text-muted);}
+  .memory-item{font-size:12.5px;color:var(--text-muted);padding:7px 0;
+    border-bottom:1px dashed var(--border);}
+  .memory-item:last-child{border-bottom:none;}
+  .evidence-row{display:flex;gap:10px;align-items:baseline;padding:8px 0;
+    border-bottom:1px solid var(--border);font-size:13px;}
+  .evidence-row:last-child{border-bottom:none;}
+  .evidence-row .out-positive{color:var(--green);}
+  .evidence-row .out-negative{color:var(--red);}
+  .evidence-row .out-neutral{color:var(--gold);}
+  .caution-box{border-left:3px solid var(--gold);background:rgba(201,154,68,.08);
+    padding:10px 12px;font-size:13px;color:var(--text-muted);margin-top:10px;border-radius:2px;}
+
+  /* The full loop, shown as a rail above the steps:
+     MEMORY -> EVIDENCE -> CONTEXT MATCH -> RECOMMENDATION -> OUTCOME
+     -> LEARNING -> BETTER FUTURE RECOMMENDATION */
+  .rail{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:16px;
+    padding:12px 14px;border:1px solid var(--border);border-radius:2px;background:var(--panel);}
+  .rail .node{font-size:10.5px;letter-spacing:.05em;color:var(--text-faint);
+    border:1px solid var(--border);padding:3px 9px;border-radius:2px;white-space:nowrap;}
+  .rail .node.on{color:var(--gold);border-color:var(--gold);}
+  .rail .arrow{color:var(--text-faint);font-size:10px;}
+
+  /* "Why this recommendation?" audit card */
+  .why{border:1px solid var(--gold);border-radius:2px;background:rgba(201,154,68,.06);
+    padding:14px 16px;margin-bottom:14px;}
+  .why h4{font-size:12px;color:var(--gold);letter-spacing:.05em;margin-bottom:12px;}
+  .why-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px 18px;}
+  .why-cell .k{font-size:10.5px;color:var(--text-faint);letter-spacing:.04em;}
+  .why-cell .v{font-size:14px;color:var(--text);margin-top:2px;}
+  .why-line{font-size:13px;color:var(--text-muted);margin-top:10px;
+    border-top:1px solid var(--border);padding-top:9px;}
+  .why-line b{color:var(--text);font-weight:500;}
+  .why-line ul{margin:4px 0 0;padding-left:18px;}
+  .why-line li{margin:2px 0;}
+
+  /* Context-match chips */
+  .chips{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 12px;}
+  .chip{font-size:11.5px;padding:2px 9px;border-radius:2px;
+    background:rgba(91,141,239,.12);color:var(--blue);}
+  .chip.muted{background:rgba(141,147,160,.12);color:var(--text-muted);}
+  .ctx-badge{font-size:10px;color:var(--blue);border:1px solid rgba(91,141,239,.45);
+    padding:0 5px;border-radius:2px;margin-left:6px;letter-spacing:.03em;}
+
+  /* Contradiction-aware learning */
+  .conflict{border-left:3px solid var(--red);background:rgba(193,89,75,.08);
+    padding:12px 14px;border-radius:2px;margin-top:12px;}
+  .conflict .hd{color:var(--red);font-size:13px;font-weight:500;margin-bottom:8px;}
+  .conflict .cond{font-size:12.5px;color:var(--text-muted);padding:3px 0;}
+  .conflict .cond b{font-weight:500;}
+  .conflict .cond b.ok{color:var(--green);}
+  .conflict .cond b.no{color:var(--red);}
+  .conflict .check{font-size:13px;color:var(--text);margin-top:9px;
+    border-top:1px solid rgba(193,89,75,.25);padding-top:9px;}
+  .avoid-row{display:flex;gap:10px;align-items:baseline;font-size:13px;padding:7px 0;
+    border-bottom:1px solid var(--border);}
+  .avoid-row:last-child{border-bottom:none;}
+  .sev{font-size:10px;padding:1px 7px;border-radius:2px;flex-shrink:0;letter-spacing:.04em;
+    text-transform:uppercase;}
+  .sev.avoid{background:rgba(193,89,75,.18);color:var(--red);}
+  .sev.caution{background:rgba(201,154,68,.18);color:var(--gold);}
+
+  /* Learning curve */
+  .jrow{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border);}
+  .jrow:last-child{border-bottom:none;}
+  .jrow .ix{width:86px;flex-shrink:0;font-size:11.5px;color:var(--gold);padding-top:1px;}
+  .jrow .jb{flex:1;font-size:13px;}
+  .jrow .jb .st{font-size:10px;color:var(--text-faint);letter-spacing:.06em;margin-bottom:2px;}
+  .jrow .jb .sub{color:var(--text-faint);font-size:12px;margin-top:3px;}
+  .forecast{border-left:3px solid var(--blue);background:rgba(91,141,239,.08);
+    padding:11px 13px;font-size:13px;color:var(--text);margin-top:2px;border-radius:2px;}
+  .note-box{border-left:3px solid var(--blue);background:rgba(91,141,239,.08);
+    padding:10px 12px;font-size:13px;color:var(--text-muted);margin-top:8px;border-radius:2px;}
+  .learning-banner{border-left:3px solid var(--green);background:rgba(78,154,107,.08);
+    padding:10px 12px;font-size:13.5px;color:var(--text);margin-top:2px;border-radius:2px;}
+
+  .add-note{margin-top:20px;border:1px solid var(--border);padding:16px;border-radius:2px;background:var(--panel);}
+  .add-note textarea{width:100%;background:var(--panel-raised);border:1px solid var(--border);
+    color:var(--text);padding:10px;border-radius:2px;font-family:inherit;font-size:14px;resize:vertical;min-height:80px;}
+  .row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;}
+  .row > *{flex:1;min-width:140px;}
+  .row.actions{justify-content:flex-end;}
+  .row.actions > *{flex:none;min-width:0;}
+
+  /* Brief / Ask */
+  .brief-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+  .compare-col h3{font-size:13px;color:var(--text-muted);margin-bottom:10px;font-weight:500;}
+  .compare-col.stateless{opacity:.55;}
+  .compare-col.stateless .content{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--text-muted);}
+  .compare-col.memory h3{color:var(--blue);}
+  .content{background:var(--panel);border:1px solid var(--border);border-radius:2px;padding:16px;
+    white-space:pre-wrap;font-size:14px;min-height:120px;}
+  .loading{color:var(--text-faint);font-style:italic;font-size:13.5px;}
+
+  .ask-box{display:flex;gap:10px;margin-bottom:18px;}
+  .ask-box input{flex:1;background:var(--panel-raised);border:1px solid var(--border);
+    color:var(--text);padding:10px 12px;border-radius:2px;font-family:inherit;font-size:14px;}
+  .ask-history{display:flex;flex-direction:column;gap:16px;}
+  .qa{border-left:2px solid var(--border);padding-left:14px;}
+  .qa .q{color:var(--text-muted);font-size:13.5px;margin-bottom:8px;}
+  .qa .q:before{content:"Q — ";color:var(--text-faint);}
+
+  /* Modal */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;
+    align-items:center;justify-content:center;z-index:10;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--panel);border:1px solid var(--border);padding:24px;width:400px;border-radius:3px;}
+  .modal h3{margin-bottom:16px;}
+  .modal label{display:block;font-size:12.5px;color:var(--text-muted);margin:12px 0 5px;}
+  .modal input{width:100%;background:var(--panel-raised);border:1px solid var(--border);
+    color:var(--text);padding:9px;border-radius:2px;font-family:inherit;font-size:14px;}
+  .modal .row.actions{margin-top:20px;}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">
+      <h1>Deal Intelligence<span class="dot">.</span></h1>
+      <p>Every call, remembered. Powered by Hindsight.</p>
+    </div>
+
+    <div>
+      <div class="section-label">Deals</div>
+      <div class="deal-list" id="dealList"></div>
+      <button class="btn block" style="margin-top:10px;" onclick="openModal()">+ New deal</button>
+    </div>
+
+    <div class="playbook-box">
+      <div class="section-label">Playbook insight</div>
+      <select id="objectionSelect">
+        <option value="pricing">Pricing objection</option>
+        <option value="competitor">Competitor comparison</option>
+        <option value="timing">Timing / budget freeze</option>
+        <option value="authority">Not the final decision-maker</option>
+        <option value="trust">Trust / compliance concern</option>
+      </select>
+      <button class="btn small block" onclick="getPlaybookInsight()">Get insight across all deals</button>
+      <div class="insight-out" id="insightOut"></div>
+    </div>
+  </div>
+
+  <div class="main" id="main">
+    <div class="empty-state">
+      <h2>Select a deal</h2>
+      <p>Or create one to start logging call history.</p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop">
+  <div class="modal">
+    <h3>New deal</h3>
+    <label>Company</label>
+    <input id="m_company" placeholder="Acme Corp">
+    <label>Contact name</label>
+    <input id="m_contact" placeholder="Jordan Lee">
+    <label>Contact title</label>
+    <input id="m_title" placeholder="VP of Operations">
+    <label>Deal value (USD)</label>
+    <input id="m_value" type="number" placeholder="50000">
+    <div class="row actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn primary" onclick="createDeal()">Create deal</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let deals = [];
+let currentDealId = null;
+let currentTab = 'timeline';
+
+async function api(path, opts) {
+  const res = await fetch(API + path, {
+    headers: {'Content-Type': 'application/json'},
+    ...opts,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, {month:'short', day:'numeric'});
+}
+function fmtMoney(v) {
+  if (!v) return '';
+  return '$' + Number(v).toLocaleString();
+}
+
+async function loadDeals() {
+  deals = await api('/api/deals');
+  const list = document.getElementById('dealList');
+  list.innerHTML = deals.map(d => `
+    <div class="deal-item ${d.id === currentDealId ? 'active' : ''}" onclick="selectDeal('${d.id}')">
+      <div class="co">${d.company}</div>
+      <div class="meta">${d.stage} · ${fmtMoney(d.deal_value)}</div>
+    </div>
+  `).join('') || '<div style="color:var(--text-faint);font-size:13px;">No deals yet.</div>';
+}
+
+function openModal(){ document.getElementById('modalBackdrop').classList.add('open'); }
+function closeModal(){ document.getElementById('modalBackdrop').classList.remove('open'); }
+
+async function createDeal() {
+  const company = document.getElementById('m_company').value.trim();
+  const contact_name = document.getElementById('m_contact').value.trim();
+  const contact_title = document.getElementById('m_title').value.trim();
+  const deal_value = parseFloat(document.getElementById('m_value').value) || null;
+  if (!company || !contact_name) return;
+  const deal = await api('/api/deals', {method:'POST', body: JSON.stringify({company, contact_name, contact_title, deal_value})});
+  closeModal();
+  ['m_company','m_contact','m_title','m_value'].forEach(id => document.getElementById(id).value = '');
+  await loadDeals();
+  selectDeal(deal.id);
+}
+
+async function selectDeal(id) {
+  currentDealId = id;
+  currentTab = 'timeline';
+  await loadDeals();
+  await renderDeal();
+}
+
+async function renderDeal() {
+  const data = await api(`/api/deals/${currentDealId}`);
+  const {deal, notes} = data;
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="deal-header">
+      <div>
+        <h2>${deal.company}</h2>
+        <div class="sub">${deal.contact_name} · ${deal.contact_title}</div>
+        <div class="value">${fmtMoney(deal.deal_value)}</div>
+      </div>
+      <div class="stage-badge">${deal.stage}</div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab ${currentTab==='timeline'?'active':''}" onclick="switchTab('timeline')">Timeline</div>
+      <div class="tab ${currentTab==='brief'?'active':''}" onclick="switchTab('brief')">Call brief</div>
+      <div class="tab ${currentTab==='ask'?'active':''}" onclick="switchTab('ask')">Ask the agent</div>
+      <div class="tab ${currentTab==='learn'?'active':''}" onclick="switchTab('learn')">Learn from outcomes</div>
+    </div>
+
+    <div class="panel ${currentTab==='timeline'?'active':''}" id="panel-timeline">
+      ${renderTimeline(notes)}
+      ${renderAddNote()}
+    </div>
+
+    <div class="panel ${currentTab==='brief'?'active':''}" id="panel-brief">
+      <div class="brief-toolbar">
+        <div class="section-label" style="margin:0;">Pre-call brief, generated from memory</div>
+        <button class="btn primary small" onclick="generateBrief()">Generate brief</button>
+      </div>
+      <div class="compare">
+        <div class="compare-col stateless">
+          <h3>Without memory</h3>
+          <div class="content" id="briefWithout">Click "Generate brief" to compare.</div>
+        </div>
+        <div class="compare-col memory">
+          <h3>With Hindsight memory</h3>
+          <div class="content" id="briefWith">Click "Generate brief" to compare.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel ${currentTab==='ask'?'active':''}" id="panel-ask">
+      <div class="ask-box">
+        <input id="askInput" placeholder="e.g. What pricing pushback have we gotten so far?" onkeydown="if(event.key==='Enter')askAgent()">
+        <button class="btn primary" onclick="askAgent()">Ask</button>
+      </div>
+      <div class="ask-history" id="askHistory"></div>
+    </div>
+
+    <div class="panel ${currentTab==='learn'?'active':''}" id="panel-learn">
+      <div class="section-label" style="margin-bottom:10px;">
+        Get a tactic recommendation, then record what actually happened
+      </div>
+      <div class="row">
+        <select id="recObjection">
+          <option value="pricing">Pricing objection</option>
+          <option value="competitor">Competitor comparison</option>
+          <option value="trust">Trust / compliance concern</option>
+          <option value="timing">Timing / budget freeze</option>
+          <option value="authority">Not the final decision-maker</option>
+        </select>
+        <input class="field-input" id="recStakeholder" placeholder="Stakeholder (optional)">
+        <input class="field-input" id="recCompetitor" placeholder="Competitor mentioned (optional)">
+        <input class="field-input" id="recStage" placeholder="Deal stage" value="${escapeHtml(deal.stage || '')}">
+      </div>
+      <textarea class="field-input" id="recObjectionText" style="min-height:46px;margin-top:8px;"
+        placeholder="What did they actually say? (optional)"></textarea>
+      <div style="font-size:12px;color:var(--text-faint);margin-top:6px;">
+        The more of these you fill in, the more precisely the agent can match past
+        experiences to <em>this</em> situation — it only claims a match on fields you give it.
+      </div>
+      <div class="row actions" style="margin-top:10px;">
+        <button class="btn primary" onclick="getRecommendation()">Get recommendation</button>
+      </div>
+      <div id="recommendOutput" style="margin-top:18px;"></div>
+    </div>
+  `;
+}
+
+// ---------- Learning pipeline: MEMORY -> EVIDENCE -> RECOMMENDATION -> OUTCOME -> LEARNING ----------
+
+function val(id) { return document.getElementById(id).value.trim(); }
+
+async function getRecommendation() {
+  const inputs = {
+    objection_type: document.getElementById('recObjection').value,
+    stakeholder: val('recStakeholder') || null,
+    competitor: val('recCompetitor') || null,
+    deal_stage: val('recStage') || null,
+    objection_text: val('recObjectionText') || null,
+  };
+  const out = document.getElementById('recommendOutput');
+  out.innerHTML = '<div class="loading">Recalling memory, counting evidence and matching context...</div>';
+  const data = await api(`/api/deals/${currentDealId}/recommend`, {
+    method: 'POST', body: JSON.stringify(inputs),
+  });
+  window.__lastRecInputs = inputs;
+  renderPipeline(data, false);
+}
+
+async function submitOutcome(recommendation_id) {
+  const tactic_used = val('out_tactic');
+  if (!tactic_used) { alert('Enter the tactic that was actually used.'); return; }
+  const inputs = window.__lastRecInputs;
+  const body = {
+    ...inputs, tactic_used,
+    outcome: document.getElementById('out_outcome').value,
+    actual_action: val('out_action') || null,
+    result: val('out_result') || null,
+    reason: val('out_reason') || null,
+    recommended_tactic: document.getElementById('out_tactic').dataset.recommended || null,
+    recommendation_id,
+  };
+  const resBox = document.getElementById('outcomeResult');
+  resBox.innerHTML = '<div class="loading">Saving to Hindsight and the experience ledger...</div>';
+  await api(`/api/deals/${currentDealId}/outcomes`, {method: 'POST', body: JSON.stringify(body)});
+  resBox.innerHTML = '<div class="loading">Outcome recorded. Re-checking the recommendation with the new evidence...</div>';
+  const updated = await api(`/api/deals/${currentDealId}/recommend`, {
+    method: 'POST', body: JSON.stringify(inputs),
+  });
+  renderPipeline(updated, true);
+}
+
+function renderPipeline(data, justUpdated) {
+  const out = document.getElementById('recommendOutput');
+  out.innerHTML =
+    renderRail(data.recommendation) +
+    renderMemoryStep(data.memory) +
+    renderEvidenceStep(data.recommendation) +
+    renderContextStep(data.recommendation) +
+    renderRecommendationStep(data.recommendation) +
+    renderOutcomeStep(data.recommendation) +
+    renderLearningStep(data.learning, justUpdated);
+  document.getElementById('out_tactic').value = data.recommendation.recommendation;
+  document.getElementById('out_tactic').dataset.recommended = data.recommendation.recommendation;
+  if (justUpdated) {
+    out.querySelector('.learning-banner')?.scrollIntoView({behavior: 'smooth', block: 'center'});
+  }
+}
+
+const RAIL = ['MEMORY', 'EVIDENCE', 'CONTEXT MATCH', 'RECOMMENDATION', 'OUTCOME',
+              'LEARNING', 'BETTER FUTURE RECOMMENDATION'];
+
+function renderRail(rec) {
+  // Every node is lit except CONTEXT MATCH when there wasn't enough shared
+  // context to use -- the rail should never imply a step that didn't happen.
+  return '<div class="rail">' + RAIL.map((n, i) => {
+    const dim = (n === 'CONTEXT MATCH' && !rec.context.used);
+    return `${i ? '<span class="arrow">→</span>' : ''}<span class="node ${dim ? '' : 'on'}">${n}</span>`;
+  }).join('') + '</div>';
+}
+
+function renderMemoryStep(mem) {
+  const list = (items, empty) => items.length
+    ? items.map(m => `<div class="memory-item">${escapeHtml(m.text)}</div>`).join('')
+    : `<div class="memory-item" style="color:var(--text-faint);">${empty}</div>`;
+  return `<div class="pipeline-step">
+    <div class="step-label">STEP 1 · MEMORY — recalled from Hindsight</div>
+    <h4>This deal</h4>
+    ${list(mem.deal, 'No relevant memories recalled from this deal yet.')}
+    <h4 style="margin-top:12px;">Cross-deal playbook</h4>
+    ${list(mem.playbook, 'No relevant memories recalled from the playbook yet.')}
+  </div>`;
+}
+
+function evidenceRow(e, showMatches) {
+  return `
+    <div class="evidence-row">
+      <span class="mono" style="width:64px;flex-shrink:0;color:var(--text-faint);">${e.date ? fmtDate(e.date) : ''}</span>
+      <span style="flex:1;">
+        <strong>${escapeHtml(e.customer || '')}</strong> — ${escapeHtml(e.tactic_used || '')}
+        ${e.contextual && !showMatches ? '<span class="ctx-badge">context match</span>' : ''}
+        ${e.reason ? `<span style="color:var(--text-faint);"> — ${escapeHtml(e.reason)}</span>` : ''}
+        ${showMatches && e.context_matches.length
+          ? `<div class="chips" style="margin:5px 0 0;">${e.context_matches.map(m =>
+              `<span class="chip">${escapeHtml(m.label)}${m.past ? ': ' + escapeHtml(String(m.past)) : ''}</span>`).join('')}</div>`
+          : ''}
+      </span>
+      <span class="out-${e.outcome}">${e.outcome}</span>
+    </div>`;
+}
+
+function renderEvidenceStep(rec) {
+  const s = rec.evidence.summary;
+  const rows = rec.evidence.items.length
+    ? rec.evidence.items.map(e => evidenceRow(e, false)).join('')
+    : '<div style="color:var(--text-faint);font-size:13px;">No relevant experiences recorded yet for this objection type.</div>';
+  return `<div class="pipeline-step">
+    <div class="step-label">STEP 2 · EVIDENCE — counted from the experience ledger, not invented</div>
+    <h4>${s.relevant_total} relevant experience(s) — ${s.successful} successful, ${s.unsuccessful} unsuccessful, ${s.neutral} neutral</h4>
+    <div style="font-size:12px;color:var(--text-faint);margin-bottom:4px;">
+      Every ${rec.objection_type} outcome the team has recorded — the general record.
+    </div>
+    ${rows}
+  </div>`;
+}
+
+function renderContextStep(rec) {
+  const c = rec.context, s = c.summary;
+  const query = Object.entries(c.query).map(([k, v]) =>
+    `<span class="chip">${escapeHtml(k.replace('_', ' '))}: ${escapeHtml(String(v))}</span>`).join('');
+  const dims = c.matched_dimensions.length
+    ? c.matched_dimensions.map(d => `<span class="chip">${escapeHtml(d)}</span>`).join('')
+    : '<span class="chip muted">no dimension matched</span>';
+  const badge = c.used
+    ? '<span class="badge moderate">used to choose the tactic</span>'
+    : '<span class="badge none">not used</span>';
+  return `<div class="pipeline-step">
+    <div class="step-label">STEP 3 · CONTEXT MATCH — which of those experiences resemble THIS deal</div>
+    <h4>${s.relevant_total} of ${rec.evidence.summary.relevant_total} experience(s) share this deal's context${badge}</h4>
+    <div style="font-size:12px;color:var(--text-faint);margin-top:8px;">This situation</div>
+    <div class="chips">${query || '<span class="chip muted">no context supplied</span>'}</div>
+    <div style="font-size:12px;color:var(--text-faint);">Matched on (structured fields only — never inferred)</div>
+    <div class="chips">${dims}</div>
+    ${c.used ? `
+      <h4 style="font-size:13.5px;">Highly relevant contextual evidence — ${s.successful} successful,
+        ${s.unsuccessful} unsuccessful, ${s.neutral} neutral</h4>
+      ${c.items.map(e => evidenceRow(e, true)).join('')}` : ''}
+    ${c.note ? `<div class="caution-box">${escapeHtml(c.note)}</div>` : ''}
+  </div>`;
+}
+
+function renderWhyCard(rec) {
+  const w = rec.why;
+  const cell = (k, v) => `<div class="why-cell"><div class="k">${k}</div><div class="v">${v}</div></div>`;
+  const conflictLine = w.conflicting_evidence
+    ? `<b>${escapeHtml(w.conflicting_evidence.label)}</b> — '${escapeHtml(w.conflicting_evidence.tactic)}':
+       ${w.conflicting_evidence.successful} successful, ${w.conflicting_evidence.unsuccessful} unsuccessful.
+       ${escapeHtml(w.conflicting_evidence.check_before_using)}`
+    : 'None on the recommended tactic.';
+  return `<div class="why">
+    <h4>WHY THIS RECOMMENDATION?</h4>
+    <div class="why-grid">
+      ${cell('RELEVANT EXPERIENCES', w.relevant_experiences)}
+      ${cell('OUTCOMES', `<span class="out-positive">${w.successful}</span> /
+        <span class="out-negative">${w.failed}</span> /
+        <span class="out-neutral">${w.neutral}</span>`)}
+      ${cell('CONTEXT MATCHES', `${w.contextual_matches} <span style="font-size:11px;color:var(--text-faint);">${w.contextual_used ? '(used)' : '(not used)'}</span>`)}
+      ${cell('CONFIDENCE', `<span class="badge ${w.confidence}" style="margin:0;">${w.confidence}</span>`)}
+    </div>
+    ${w.matched_on.length ? `<div class="why-line"><b>Matched on:</b> ${w.matched_on.map(escapeHtml).join(' · ')}</div>` : ''}
+    <div class="why-line"><b>Recommendation:</b> ${escapeHtml(w.recommendation)}
+      <span style="color:var(--text-faint);">(${escapeHtml(w.basis)})</span></div>
+    ${w.tactic_record ? `<div class="why-line"><b>Record for that tactic:</b> ${escapeHtml(w.tactic_record)}</div>` : ''}
+    <div class="why-line"><b>Conflicting evidence:</b> ${conflictLine}</div>
+    ${w.cautions.length ? `<div class="why-line"><b>Cautions:</b><ul>${
+      w.cautions.map(x => `<li>${escapeHtml(x.text)}</li>`).join('')}</ul></div>` : ''}
+    <div class="why-line"><b>Next action:</b> ${escapeHtml(w.next_action)}</div>
+  </div>`;
+}
+
+function renderConflict(c) {
+  if (!c) return '';
+  return `<div class="conflict">
+    <div class="hd">${escapeHtml(c.label)} — '${escapeHtml(c.tactic)}': ${c.successful} successful,
+      ${c.unsuccessful} unsuccessful${c.neutral ? `, ${c.neutral} neutral` : ''}</div>
+    ${c.worked_when.map(w => `<div class="cond"><b class="ok">Worked:</b> ${escapeHtml(w)}</div>`).join('')}
+    ${c.failed_when.map(f => `<div class="cond"><b class="no">Failed:</b> ${escapeHtml(f)}</div>`).join('')}
+    <div class="check">${escapeHtml(c.check_before_using)}</div>
+  </div>`;
+}
+
+function renderAvoid(list) {
+  if (!list.length) return '';
+  return `<div style="margin-top:14px;">
+    <div style="font-size:12px;color:var(--text-faint);margin-bottom:2px;">
+      Avoid / use caution — tried and failed, with no success anywhere on record
+    </div>
+    ${list.map(a => `
+      <div class="avoid-row">
+        <span class="sev ${a.severity === 'avoid' ? 'avoid' : 'caution'}">${escapeHtml(a.severity)}</span>
+        <span style="flex:1;">${escapeHtml(a.tactic)}
+          ${a.failed_when.length ? `<div style="color:var(--text-faint);font-size:12px;margin-top:2px;">${escapeHtml(a.failed_when[0])}</div>` : ''}
+        </span>
+        <span class="out-negative" style="white-space:nowrap;">${a.unsuccessful}× failed</span>
+      </div>`).join('')}
+  </div>`;
+}
+
+// 'conflict' and 'avoid' cautions already have their own panels above, so the
+// catch-all box shows only what nothing else is rendering. The full set is
+// still listed once, compactly, in the Why card.
+const OWNED_CAUTION_KINDS = ['conflict', 'avoid'];
+
+function renderCautions(rec) {
+  const rest = (rec.cautions || []).filter(c => !OWNED_CAUTION_KINDS.includes(c.kind));
+  if (!rest.length) return '';
+  return `<div class="caution-box">${rest.map(c => escapeHtml(c.text)).join(' ')}</div>`;
+}
+
+function renderRecommendationStep(rec) {
+  const badgeLabel = rec.basis === 'generic' ? 'generic guidance' : `${rec.confidence} confidence`;
+  const basisNote = {
+    'generic': 'Generic playbook guidance — nothing learned applies yet.',
+    'learned': 'Learned from the general record for this objection type.',
+    'learned-contextual': 'Learned from experiences that match this deal\'s context.',
+  }[rec.basis] || '';
+  return `<div class="pipeline-step">
+    <div class="step-label">STEP 4 · RECOMMENDATION</div>
+    ${renderWhyCard(rec)}
+    <h4>${escapeHtml(rec.recommendation)}<span class="badge ${rec.confidence}">${badgeLabel}</span></h4>
+    <div style="font-size:11.5px;color:var(--text-faint);margin-top:2px;">${escapeHtml(basisNote)}</div>
+    <div style="font-size:13.5px;color:var(--text);margin-top:8px;">${escapeHtml(rec.reasoning)}</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-top:8px;"><strong>Suggested next action:</strong> ${escapeHtml(rec.next_action)}</div>
+    ${renderConflict(rec.conflict)}
+    ${renderAvoid(rec.avoid_detail)}
+    ${renderCautions(rec)}
+    ${rec.agent_note ? `<div class="note-box">${escapeHtml(rec.agent_note)}</div>` : ''}
+    ${rec.reasoning_source === 'evidence-only'
+      ? `<div style="font-size:11.5px;color:var(--text-faint);margin-top:8px;">
+           Hindsight reflect() was unavailable, so this wording is the deterministic
+           explanation built from the same verified counts.</div>` : ''}
+  </div>`;
+}
+
+function renderOutcomeStep(rec) {
+  return `<div class="pipeline-step">
+    <div class="step-label">STEP 5 · OUTCOME — log what actually happened</div>
+    <div class="row">
+      <input class="field-input" id="out_tactic" placeholder="Tactic actually used">
+      <select id="out_outcome">
+        <option value="positive">Positive — it worked</option>
+        <option value="neutral">Neutral — no clear effect</option>
+        <option value="negative">Negative — it didn't work</option>
+      </select>
+    </div>
+    <textarea class="field-input" id="out_action" style="min-height:46px;margin-top:8px;"
+      placeholder="What did the rep actually do? (optional, if different from the recommendation)"></textarea>
+    <textarea class="field-input" id="out_result" style="min-height:46px;margin-top:8px;"
+      placeholder="What happened as a result? (optional)"></textarea>
+    <input class="field-input" id="out_reason" style="margin-top:8px;"
+      placeholder="Why do you think that happened? (optional)">
+    <div class="row actions" style="margin-top:10px;">
+      <button class="btn primary" onclick="submitOutcome('${rec.id}')">Record outcome</button>
+    </div>
+    <div id="outcomeResult"></div>
+  </div>`;
+}
+
+function renderLearningStep(learning, justUpdated) {
+  const c = learning.changes, j = learning.journey;
+  const historyRows = learning.history.length > 1 ? learning.history.map(h => `
+    <div class="evidence-row">
+      <span class="mono" style="width:34px;flex-shrink:0;">v${h.version}</span>
+      <span style="flex:1;">${h.basis === 'generic' ? 'Generic guidance' : escapeHtml(h.tactic)}
+        — ${h.counts.successful} successful / ${h.counts.unsuccessful} unsuccessful</span>
+      <span class="badge ${h.confidence}" style="margin:0;">${h.confidence}</span>
+    </div>`).join('') : '';
+
+  // The learning curve. Every interaction number below is a count read back out
+  // of the stored recommendation log, not an illustrative milestone.
+  const journeyRows = j.milestones.map(m => `
+    <div class="jrow">
+      <div class="ix mono">Interaction ${m.interaction}</div>
+      <div class="jb">
+        <div class="st">${escapeHtml(String(m.stage).toUpperCase())}</div>
+        ${escapeHtml(m.label)}
+        <div class="sub">${m.counts.total || 0} experience(s) ·
+          ${m.counts.successful || 0} successful / ${m.counts.unsuccessful || 0} unsuccessful ·
+          ${escapeHtml(m.confidence || '')} confidence</div>
+      </div>
+    </div>`).join('');
+
+  return `<div class="pipeline-step">
+    <div class="step-label">STEP 6 · LEARNING — what changed since the last time this was asked</div>
+    <div class="${justUpdated ? 'learning-banner' : ''}" style="${justUpdated ? '' : 'font-size:13.5px;color:var(--text-muted);'}">
+      ${escapeHtml(c.summary)}
+    </div>
+
+    <div style="margin-top:16px;">
+      <h4 style="font-size:13px;color:var(--text-muted);margin-bottom:2px;">Learning curve</h4>
+      <div style="font-size:12px;color:var(--text-faint);margin-bottom:6px;">
+        ${escapeHtml(j.summary)}
+      </div>
+      ${journeyRows || '<div style="color:var(--text-faint);font-size:13px;">No history yet for this objection type.</div>'}
+    </div>
+
+    ${historyRows ? `<div style="margin-top:16px;">
+      <h4 style="font-size:13px;color:var(--text-muted);margin-bottom:6px;">Every evidence state for this objection type</h4>
+      ${historyRows}
+    </div>` : ''}
+
+    <div style="margin-top:18px;">
+      <div class="step-label" style="margin-bottom:8px;">STEP 7 · BETTER FUTURE RECOMMENDATION</div>
+      <div class="forecast">${escapeHtml(learning.forecast)}</div>
+    </div>
+  </div>`;
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  renderDeal();
+}
+
+function renderTimeline(notes) {
+  if (!notes.length) return `<div style="color:var(--text-faint);font-size:13.5px;">No call history logged yet.</div>`;
+  return notes.map(n => `
+    <div class="timeline-item">
+      <div class="date mono">${fmtDate(n.timestamp)}</div>
+      <div class="body">
+        <span class="type-tag">${n.note_type}</span>
+        <div class="notes">${escapeHtml(n.raw_notes)}</div>
+        ${(n.objection_type || n.outcome) ? `
+          <div class="tag-row">
+            ${n.objection_type ? `<span class="tag objection">${n.objection_type} objection</span>` : ''}
+            ${n.outcome ? `<span class="tag outcome-${n.outcome}">${n.outcome}</span>` : ''}
+            ${n.stakeholder ? `<span class="tag who">${escapeHtml(n.stakeholder)}</span>` : ''}
+            ${n.competitor ? `<span class="tag who">vs ${escapeHtml(n.competitor)}</span>` : ''}
+          </div>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAddNote() {
+  return `
+    <div class="add-note">
+      <div class="section-label">Log a call, email, or meeting</div>
+      <textarea id="noteText" placeholder="Paste your raw call notes here..."></textarea>
+      <div class="row">
+        <select id="noteType">
+          <option value="call">Call</option>
+          <option value="email">Email</option>
+          <option value="meeting">Meeting</option>
+        </select>
+        <select id="noteObjection">
+          <option value="">No objection raised</option>
+          <option value="pricing">Pricing objection</option>
+          <option value="competitor">Competitor comparison</option>
+          <option value="timing">Timing / budget freeze</option>
+          <option value="authority">Not the final decision-maker</option>
+          <option value="trust">Trust / compliance concern</option>
+        </select>
+        <select id="noteOutcome">
+          <option value="">No outcome tagged</option>
+          <option value="advanced">Deal advanced</option>
+          <option value="stalled">Deal stalled</option>
+          <option value="lost">Deal lost</option>
+        </select>
+      </div>
+      <div class="row actions">
+        <button class="btn primary" onclick="addNote()">Add note</button>
+      </div>
+    </div>
+  `;
+}
+
+async function addNote() {
+  const raw_notes = document.getElementById('noteText').value.trim();
+  if (!raw_notes) return;
+  const note_type = document.getElementById('noteType').value;
+  const objection_type = document.getElementById('noteObjection').value || null;
+  const outcome = document.getElementById('noteOutcome').value || null;
+  const btn = event.target;
+  btn.textContent = 'Saving to memory...';
+  btn.disabled = true;
+  await api(`/api/deals/${currentDealId}/notes`, {
+    method: 'POST',
+    body: JSON.stringify({raw_notes, note_type, objection_type, outcome}),
+  });
+  await renderDeal();
+}
+
+async function generateBrief() {
+  document.getElementById('briefWithout').innerHTML = '<span class="loading">Thinking with no memory...</span>';
+  document.getElementById('briefWith').innerHTML = '<span class="loading">Reflecting across every past interaction...</span>';
+  const result = await api(`/api/deals/${currentDealId}/brief`);
+  document.getElementById('briefWithout').textContent = result.without_memory;
+  document.getElementById('briefWith').textContent = result.with_memory;
+}
+
+async function askAgent() {
+  const input = document.getElementById('askInput');
+  const question = input.value.trim();
+  if (!question) return;
+  input.value = '';
+  const history = document.getElementById('askHistory');
+  const id = 'qa-' + Date.now();
+  history.insertAdjacentHTML('afterbegin', `
+    <div class="qa" id="${id}">
+      <div class="q">${escapeHtml(question)}</div>
+      <div class="content"><span class="loading">Recalling from memory...</span></div>
+    </div>
+  `);
+  const result = await api(`/api/deals/${currentDealId}/ask`, {method:'POST', body: JSON.stringify({question})});
+  document.getElementById(id).querySelector('.content').textContent = result.with_memory;
+}
+
+async function getPlaybookInsight() {
+  const objection_type = document.getElementById('objectionSelect').value;
+  const out = document.getElementById('insightOut');
+  out.style.display = 'block';
+  out.textContent = 'Reflecting across all deals...';
+  const result = await api(`/api/playbook/insight?objection_type=${encodeURIComponent(objection_type)}`);
+  out.textContent = result.insight;
+}
+
+function escapeHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+loadDeals();
+</script>
+</body>
+</html>
